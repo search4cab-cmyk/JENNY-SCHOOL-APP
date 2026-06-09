@@ -1,0 +1,695 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenny School Road Security Records</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- PDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            
+            --status-paid-bg: #d1fae5;
+            --status-paid-text: #065f46;
+            --status-partial-bg: #fef3c7;
+            --status-partial-text: #92400e;
+            --status-unpaid-bg: #fee2e2;
+            --status-unpaid-text: #991b1b;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* Top Header */
+        .app-header { background-color: #1e293b; color: white; padding: 1.5rem; border-bottom: 4px solid var(--primary); margin-bottom: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .app-header h1 { font-size: 1.25rem; font-weight: 600; margin: 0; letter-spacing: -0.5px; text-align: center; }
+
+        /* Buttons & Selects */
+        .btn-custom-primary { background-color: var(--primary); color: white; border: none; font-weight: 500; border-radius: 8px; padding: 0.5rem 1rem; transition: all 0.2s; white-space: nowrap; }
+        .btn-custom-primary:hover { background-color: var(--primary-hover); color: white; transform: translateY(-1px); }
+        .btn-custom-secondary { background-color: white; color: var(--text-main); border: 1px solid var(--border-color); font-weight: 500; border-radius: 8px; padding: 0.5rem 1rem; transition: all 0.2s; white-space: nowrap; }
+        .btn-custom-secondary:hover { background-color: #f9fafb; }
+        
+        .year-select { background-color: #334155; color: white; border: 1px solid #475569; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; outline: none; }
+        .year-select:focus { border-color: var(--primary); }
+
+        /* Cards */
+        .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); margin-bottom: 1.5rem; }
+        .card-header-custom { background-color: #f8fafc; border-bottom: 1px solid var(--border-color); padding: 1rem; border-radius: 12px 12px 0 0; font-weight: 600; color: #334155; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
+        
+        /* Stats Dashboard */
+        .stat-card { padding: 1.2rem; text-align: left; border-radius: 12px; border: 1px solid var(--border-color); background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 100%; }
+        .stat-title { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin: 0; word-break: break-word; }
+        
+        /* Table Styles & Pagination Protections */
+        .table-container { overflow-x: auto; padding: 0 1px; -webkit-overflow-scrolling: touch; }
+        .table { margin-bottom: 0; border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1000px; }
+        .table thead th { background-color: #f8fafc; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; padding: 0.75rem; border-bottom: 1px solid var(--border-color); border-top: none; }
+        .table tbody td { padding: 0.5rem 0.75rem; vertical-align: middle; border-bottom: 1px solid var(--border-color); font-size: 0.875rem; color: #334155; }
+        .table tbody tr:hover { background-color: #f9fafb; }
+        
+        /* VERY IMPORTANT FOR PDF MULTI-PAGE: Prevents slicing rows in half */
+        tr, td, th, .card { page-break-inside: avoid !important; }
+        .page-break-before { page-break-before: always !important; }
+        
+        /* Seamless Inputs */
+        input[type="number"].table-input { width: 65px; padding: 6px 2px; text-align: center; border: 1px solid transparent; background: transparent; font-size: 0.875rem; font-family: inherit; border-radius: 4px; transition: all 0.2s; }
+        input[type="number"].table-input:hover { background-color: rgba(0,0,0,0.03); }
+        input[type="number"].table-input:focus { border: 1px solid var(--primary); outline: none; background: white; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1); }
+
+        /* Status Colors */
+        .paid { background-color: var(--status-paid-bg) !important; color: var(--status-paid-text) !important; font-weight: 500; }
+        .partial { background-color: var(--status-partial-bg) !important; color: var(--status-partial-text) !important; font-weight: 500; }
+        .unpaid { background-color: var(--status-unpaid-bg) !important; color: var(--status-unpaid-text) !important; font-weight: 500; }
+
+        .form-control, .form-select { border-radius: 8px; border: 1px solid #d1d5db; padding: 0.6rem 1rem; font-size: 0.875rem; width: 100%; }
+        .form-control:focus, .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+
+        /* Stamp & Signature CSS */
+        .signature-section { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px; padding-top: 20px; page-break-inside: avoid; }
+        .stamp { border: 3px solid #dc2626; color: #dc2626; padding: 10px 15px; border-radius: 8px; font-weight: 800; font-size: 13px; text-transform: uppercase; transform: rotate(-5deg); letter-spacing: 2px; display: inline-block; opacity: 0.85; line-height: 1.4; text-align: center;}
+        .signature-box { text-align: center; }
+        .signature-text { font-family: 'Dancing Script', cursive; font-size: 38px; color: #1e3a8a; line-height: 1; margin-bottom: 5px; transform: rotate(-2deg); }
+        .signature-line { border-top: 1px solid #111827; width: 220px; margin: 0 auto 5px auto; }
+        .signature-title { font-size: 15px; font-weight: 700; color: #111827; margin: 0; }
+        
+        .report-header { display: none; text-align: center; margin-bottom: 30px; }
+        #full-report-signature { display: none; }
+        
+        /* Responsive Media Queries */
+        @media (min-width: 768px) {
+            .app-header h1 { font-size: 1.5rem; text-align: left; }
+            .stat-value { font-size: 1.75rem; }
+            .search-filter-container { flex-direction: row !important; }
+            .search-input-wrapper { max-width: 400px; }
+            .filter-select-wrapper { max-width: 200px; }
+        }
+
+        /* Print Styles */
+        @media print {
+            body { background-color: #fff; }
+            .app-header, .no-print { display: none !important; }
+            .report-header { display: block; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            #full-report-signature { display: flex !important; }
+            .card { border: none; box-shadow: none; margin-bottom: 20px; }
+            .stat-card { border: 1px solid #000 !important; padding: 1rem; }
+            .table-container { overflow-x: visible; }
+            .table { min-width: 100%; }
+            .table thead th { border-bottom: 2px solid #000; color: #000; }
+            .table tbody td { border-bottom: 1px solid #ddd; }
+            .paid { background-color: #d1fae5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .partial { background-color: #fef3c7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .unpaid { background-color: #fee2e2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { size: landscape; margin: 0.5cm; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Responsive Header -->
+<div class="app-header d-flex flex-column flex-md-row justify-content-between align-items-center no-print gap-3">
+    <div class="d-flex flex-column flex-md-row align-items-center gap-3">
+        <h1>Jenny School Road Security Records</h1>
+        <select id="yearSelect" class="year-select" onchange="changeYear()"></select>
+    </div>
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+        <button class="btn-custom-primary" onclick="toggleAddForm()">+ Add Resident</button>
+        <button class="btn-custom-secondary" onclick="window.print()">Print Report</button>
+        <button class="btn-custom-secondary text-danger border-danger" onclick="exportPDF()">Export Full PDF</button>
+    </div>
+</div>
+
+<div class="container-fluid px-3 px-md-4 pb-4" id="app-content">
+    
+    <!-- PDF/Print Header -->
+    <div class="report-header">
+        <h1 style="font-weight: 700; margin-bottom: 5px; color: #111827; font-size: 24px;">JENNY SCHOOL ROAD SECURITY RECORD</h1>
+        <h4 style="color: #4b5563; font-weight: 600; margin-bottom: 5px; font-size: 18px;">Estate Security Levy Report - <span id="print-year"></span></h4>
+        <p style="color: #6b7280; font-size: 14px; margin-bottom: 2px;">by the Landlord Association Ekete Waterside, Udu Road, Nigeria</p>
+        <p style="color: #6b7280; font-size: 14px;">Generated on: <span id="report-date"></span></p>
+    </div>
+
+    <!-- Add Landlord Form -->
+    <div class="card no-print" id="addFormCard" style="display: none; border-top: 4px solid var(--primary);">
+        <div class="card-body p-3 p-md-4">
+            <h5 class="mb-4" style="font-weight: 600;">Register New Resident</h5>
+            <form id="addLandlordForm" class="row g-3" onsubmit="addLandlord(event)">
+                <div class="col-12 col-md-3"><input type="text" class="form-control" id="lName" placeholder="Full Name" required></div>
+                <div class="col-12 col-md-3"><input type="text" class="form-control" id="lCompound" placeholder="Compound Name" required></div>
+                <div class="col-6 col-md-2"><input type="text" class="form-control" id="lHouse" placeholder="House No." required></div>
+                <div class="col-6 col-md-2"><input type="number" class="form-control" id="lLevy" placeholder="Monthly Levy (₦)" required></div>
+                <div class="col-12 col-md-2"><button type="submit" class="btn-custom-primary w-100 h-100">Save Record</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Responsive Summary Dashboard -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-title">Total Residents</div>
+                <div class="stat-value" id="statTotalLandlords">0</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-title">Expected Revenue</div>
+                <div class="stat-value text-primary" id="statExpected">₦0</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-title">Collected Revenue</div>
+                <div class="stat-value" style="color: var(--status-paid-text);" id="statCollected">₦0</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-6 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-title">Outstanding</div>
+                <div class="stat-value" style="color: var(--status-unpaid-text);" id="statOutstanding">₦0</div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-2">
+            <div class="stat-card border-warning">
+                <div class="stat-title">Defaulters</div>
+                <div class="stat-value" style="color: var(--status-partial-text);" id="statDefaulters">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="card no-print mb-4">
+        <div class="card-body p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 search-filter-container">
+            <div class="d-flex flex-column flex-md-row gap-3 flex-grow-1 w-100">
+                <div class="search-input-wrapper w-100">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search Name or House..." onkeyup="renderTable()">
+                </div>
+                <div class="filter-select-wrapper w-100">
+                    <select id="filterSelect" class="form-select" onchange="renderTable()">
+                        <option value="all">All Statuses</option>
+                        <option value="paid">Fully Paid</option>
+                        <option value="partial">Partially Paid</option>
+                        <option value="owing">Owing</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-outline-danger w-100 w-md-auto whitespace-nowrap" style="white-space: nowrap;" onclick="clearYearData()">Erase <span id="btn-clear-year"></span> Data</button>
+        </div>
+    </div>
+
+    <!-- Main Tracking Table -->
+    <div class="card mb-4">
+        <div class="card-header-custom">
+            <span>Payment Master Ledger (<span id="table-year-label"></span>)</span>
+            <small class="text-muted d-md-none fw-normal">Scroll horizontally &rarr;</small>
+        </div>
+        <div class="card-body p-0 table-container">
+            <table class="table" id="mainTable">
+                <thead>
+                    <tr>
+                        <th>Resident Name</th>
+                        <th>Location</th>
+                        <th>Levy</th>
+                        <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th>
+                        <th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th>
+                        <th class="text-end">Total Paid</th>
+                        <th class="text-end">Balance</th>
+                        <th class="no-print text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Defaulters Report -->
+    <div class="card mt-5" id="defaultersSection">
+        <div class="card-header-custom" style="background-color: #fef2f2; color: #991b1b; border-bottom: 1px solid #fecaca;">
+            <span style="font-size: 1.1rem;">⚠️ Outstanding Payments Report (<span id="defaulter-year-label"></span>)</span>
+        </div>
+        <div class="card-body p-0 table-container">
+            <table class="table mb-0" style="min-width: 600px;">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; text-align: center;">#</th>
+                        <th>Resident Name</th>
+                        <th>Compound</th>
+                        <th>Owed Months Breakdown</th>
+                        <th class="text-end">Total Owed</th>
+                    </tr>
+                </thead>
+                <tbody id="defaultersBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Full Report Stamp & Signature (Only visible on Print/PDF) -->
+    <div class="signature-section" id="full-report-signature">
+        <div class="stamp">
+            JENNY SCHOOL ROAD<br>SECURITY ASSOCIATION<br>OFFICIAL RECORD
+        </div>
+        <div class="signature-box">
+            <div class="signature-text">Anointing Umude</div>
+            <div class="signature-line"></div>
+            <p class="signature-title">Anointing Umude<br><span style="font-weight: 500; color: #4b5563;">Treasurer</span></p>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden Receipt Container for PDF Generation -->
+<!-- Placed off-screen so it doesn't jump the layout when generating -->
+<div id="receiptContainer" style="position: absolute; top: -10000px; left: -10000px; display: block; width: 100%; z-index: -1;">
+    <div id="receiptContent" style="padding: 40px; background: white; color: black; font-family: 'Inter', sans-serif; width: 100%; max-width: 750px; margin: 0 auto;">
+        
+        <!-- Header -->
+        <div style="text-align: center; border-bottom: 2px solid #111827; padding-bottom: 20px; margin-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #111827;">JENNY SCHOOL ROAD SECURITY RECORD</h1>
+            <p style="margin: 5px 0 0; font-size: 13px; color: #4b5563; font-weight: 500;">by the Landlord Association Ekete Waterside, Udu Road, Nigeria</p>
+        </div>
+        
+        <!-- Date & Invoice Number -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+            <div>
+                <h2 style="margin: 0; color: #4f46e5; font-size: 18px; font-weight: 700;">PAYMENT INVOICE / RECEIPT</h2>
+            </div>
+            <div style="text-align: right; font-size: 14px;">
+                <p style="margin: 0;"><strong>Date:</strong> <span id="rDate"></span></p>
+                <p style="margin: 5px 0 0;"><strong>Levy Year:</strong> <span id="rYear"></span></p>
+            </div>
+        </div>
+
+        <!-- Resident Info -->
+        <div style="margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <h3 style="margin: 0 0 10px; font-size: 13px; text-transform: uppercase; color: #64748b; letter-spacing: 1px;">Resident Details</h3>
+            <p style="margin: 0 0 5px; font-size: 16px;"><strong>Name:</strong> <span id="rName" style="color: #0f172a;"></span></p>
+            <p style="margin: 0; font-size: 14px;"><strong>Location:</strong> <span id="rAddress"></span></p>
+        </div>
+
+        <!-- Payment Details -->
+        <div style="margin-bottom: 25px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background: #1e293b; color: white;">
+                        <th style="padding: 10px; border: 1px solid #1e293b; text-align: left; font-size: 14px;">Description</th>
+                        <th style="padding: 10px; border: 1px solid #1e293b; text-align: right; font-size: 14px;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 14px;">Annual Expected Levy (₦<span id="rMonthly"></span> x 12 Months)</td>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: right; font-weight: 500; font-size: 14px;">₦<span id="rExpected"></span></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 14px;"><strong>Total Amount Paid for Year</strong></td>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: right; color: #059669; font-weight: 700; font-size: 15px;">₦<span id="rPaid"></span></td>
+                    </tr>
+                    <tr style="background: #fff5f5;">
+                        <td style="padding: 10px; border: 1px solid #e2e8f0; font-size: 14px;">
+                            <strong>Outstanding Balance</strong>
+                            <div id="rOwingMonths" style="font-size:12px; color:#dc2626; margin-top: 4px;"></div>
+                        </td>
+                        <td style="padding: 10px; border: 1px solid #e2e8f0; text-align: right; color: #dc2626; font-weight: 700; font-size: 15px;">₦<span id="rBalance"></span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Payment Instructions -->
+        <div style="background: #f0fdfa; padding: 15px; border-radius: 8px; border: 2px dashed #0d9488; margin-bottom: 25px; text-align: center;">
+            <h4 style="margin: 0 0 8px; color: #0f172a; font-size: 15px;">Payment Instructions & Bank Details</h4>
+            <p style="margin: 0 0 8px; color: #334155; font-size: 13px;">For all next payments or outstanding security payments, please pay to:</p>
+            <p style="margin: 0; font-weight: 700; font-size: 16px; color: #111827;">Umude Anointing</p>
+            <p style="margin: 3px 0; font-weight: 800; font-size: 22px; color: #4f46e5; letter-spacing: 2px;">0257831096</p>
+            <p style="margin: 0; font-weight: 700; font-size: 14px; color: #111827;">GTB (Guaranty Trust Bank)</p>
+        </div>
+
+        <!-- Stamp and Signature Section for Receipt -->
+        <div class="signature-section" style="margin-bottom: 25px;">
+            <div class="stamp" style="border-color: #059669; color: #059669; font-size: 11px;">
+                JENNY SCHOOL ROAD<br>SECURITY ASSOCIATION<br>PAYMENT RECEIVED
+            </div>
+            <div class="signature-box">
+                <div class="signature-text" style="font-size: 32px;">Anointing Umude</div>
+                <div class="signature-line" style="width: 180px;"></div>
+                <p class="signature-title" style="font-size: 13px;">Anointing Umude<br><span style="font-weight: 500; color: #4b5563;">Treasurer</span></p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; color: #dc2626; font-weight: 700; font-size: 13px; background: #fee2e2; padding: 12px; border-radius: 8px;">
+            <p style="margin: 0;">P.S : After payment please post receipt on the Group chat. THANKS.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    let data = JSON.parse(localStorage.getItem('jennyLevyData')) || [];
+    let activeYear = new Date().getFullYear().toString();
+
+    function initializeSystem() {
+        let needsSave = false;
+        data.forEach(record => {
+            if (typeof record.payments.jan === 'number') {
+                const oldPayments = { ...record.payments };
+                record.payments = {};
+                record.payments[activeYear] = oldPayments;
+                needsSave = true;
+            }
+        });
+        if (needsSave) localStorage.setItem('jennyLevyData', JSON.stringify(data));
+        
+        populateYears();
+        ensureYearExistsForEveryone();
+        saveAndRender();
+    }
+
+    function populateYears() {
+        let years = new Set([new Date().getFullYear().toString(), (new Date().getFullYear() + 1).toString()]);
+        data.forEach(d => {
+            if (d.payments) Object.keys(d.payments).forEach(y => years.add(y));
+        });
+        
+        let sortedYears = Array.from(years).sort((a,b) => b - a);
+        const select = document.getElementById('yearSelect');
+        select.innerHTML = '';
+        sortedYears.forEach(y => {
+            select.innerHTML += `<option value="${y}" ${y === activeYear ? 'selected' : ''}>Year: ${y}</option>`;
+        });
+    }
+
+    function changeYear() {
+        activeYear = document.getElementById('yearSelect').value;
+        ensureYearExistsForEveryone();
+        saveAndRender();
+    }
+
+    function ensureYearExistsForEveryone() {
+        data.forEach(record => {
+            if (!record.payments[activeYear]) {
+                record.payments[activeYear] = { jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0, jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0 };
+            }
+        });
+    }
+
+    function toggleAddForm() {
+        const form = document.getElementById('addFormCard');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        if(form.style.display === 'block') document.getElementById('lName').focus();
+    }
+
+    function formatMoney(amount) {
+        return amount.toLocaleString('en-NG');
+    }
+
+    function addLandlord(e) {
+        e.preventDefault();
+        const newRecord = {
+            id: Date.now(),
+            name: document.getElementById('lName').value,
+            compound: document.getElementById('lCompound').value,
+            house: document.getElementById('lHouse').value,
+            monthlyLevy: parseFloat(document.getElementById('lLevy').value),
+            payments: {}
+        };
+        newRecord.payments[activeYear] = { jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0, jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0 };
+        
+        data.push(newRecord);
+        saveAndRender();
+        document.getElementById('addLandlordForm').reset();
+        toggleAddForm();
+    }
+
+    function deleteLandlord(id) {
+        if(confirm("Are you sure you want to permanently delete this resident's record?")) {
+            data = data.filter(d => d.id !== id);
+            saveAndRender();
+        }
+    }
+
+    function clearYearData() {
+        if(confirm(`⚠️ WARNING: Are you sure you want to erase all payment records for the year ${activeYear}? \n\nThis will reset everyone's payments to ₦0. Names will remain. This cannot be undone!`)) {
+            data.forEach(record => {
+                record.payments[activeYear] = { jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0, jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0 };
+            });
+            saveAndRender();
+        }
+    }
+
+    function updatePayment(id, month, value) {
+        const record = data.find(d => d.id === id);
+        if (record) {
+            record.payments[activeYear][month] = parseFloat(value) || 0;
+            saveAndRender();
+        }
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('jennyLevyData', JSON.stringify(data));
+        updateLabels();
+        updateDashboard();
+        renderTable();
+        renderDefaulters();
+    }
+
+    function updateLabels() {
+        document.getElementById('print-year').innerText = `Year ${activeYear}`;
+        document.getElementById('table-year-label').innerText = activeYear;
+        document.getElementById('defaulter-year-label').innerText = activeYear;
+        document.getElementById('btn-clear-year').innerText = activeYear;
+
+        const now = new Date();
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        document.getElementById('report-date').innerText = `${now.toLocaleDateString('en-NG', dateOptions)} at ${now.toLocaleTimeString('en-NG', timeOptions)}`;
+    }
+
+    function getStatusClass(paid, expected) {
+        if (paid === 0) return 'unpaid';
+        if (paid > 0 && paid < expected) return 'partial';
+        if (paid >= expected) return 'paid';
+        return '';
+    }
+
+    function updateDashboard() {
+        let expected = 0, collected = 0, outstanding = 0, defaulters = 0;
+
+        data.forEach(record => {
+            const yearlyExpected = record.monthlyLevy * 12;
+            expected += yearlyExpected;
+            let totalPaid = 0;
+            months.forEach(m => totalPaid += record.payments[activeYear][m]);
+            collected += totalPaid;
+
+            const balance = yearlyExpected - totalPaid;
+            if (balance > 0) { outstanding += balance; defaulters++; }
+        });
+
+        document.getElementById('statTotalLandlords').innerText = data.length;
+        document.getElementById('statExpected').innerText = `₦${formatMoney(expected)}`;
+        document.getElementById('statCollected').innerText = `₦${formatMoney(collected)}`;
+        document.getElementById('statOutstanding').innerText = `₦${formatMoney(outstanding)}`;
+        document.getElementById('statDefaulters').innerText = defaulters;
+    }
+
+    function renderTable() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const filter = document.getElementById('filterSelect').value;
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        data.forEach(record => {
+            const yearlyExpected = record.monthlyLevy * 12;
+            let totalPaid = 0;
+            months.forEach(m => totalPaid += record.payments[activeYear][m]);
+            const balance = yearlyExpected - totalPaid;
+
+            if (!record.name.toLowerCase().includes(search) && 
+                !record.compound.toLowerCase().includes(search) && 
+                !record.house.toLowerCase().includes(search)) return;
+
+            if (filter === 'paid' && balance > 0) return;
+            if (filter === 'partial' && (balance === 0 || totalPaid === 0)) return;
+            if (filter === 'owing' && balance === 0) return;
+
+            let row = `<tr>
+                <td style="font-weight: 500; color: #111827;">${record.name}</td>
+                <td><span style="color: #6b7280; font-size: 0.8rem;">${record.compound}</span><br>${record.house}</td>
+                <td style="font-weight: 500;">₦${formatMoney(record.monthlyLevy)}</td>`;
+
+            months.forEach(m => {
+                const amount = record.payments[activeYear][m];
+                const statusClass = getStatusClass(amount, record.monthlyLevy);
+                row += `<td class="text-center ${statusClass}" style="padding: 0.25rem;">
+                            <input class="table-input no-print" type="number" value="${amount}" onchange="updatePayment(${record.id}, '${m}', this.value)">
+                            <span style="display:none;" class="print-only">${amount === 0 ? '-' : '₦'+formatMoney(amount)}</span>
+                        </td>`;
+            });
+
+            row += `<td class="text-end" style="font-weight: 600; color: #059669;">₦${formatMoney(totalPaid)}</td>
+                    <td class="text-end" style="font-weight: 600; color: #dc2626;">₦${formatMoney(balance)}</td>
+                    <td class="no-print text-center d-flex gap-1 justify-content-center align-items-center">
+                        <button class="btn btn-sm btn-outline-primary" style="font-size: 12px; padding: 4px 8px;" onclick="generateReceipt(${record.id})" title="Print Receipt">Receipt</button>
+                        <button class="btn btn-sm text-danger" style="background: #fee2e2; border-radius: 4px; padding: 4px 8px;" onclick="deleteLandlord(${record.id})" title="Delete">X</button>
+                    </td>
+                </tr>`;
+            tbody.innerHTML += row;
+        });
+
+        if(!document.getElementById('printStyleFix')){
+            const style = document.createElement('style');
+            style.id = 'printStyleFix';
+            style.innerHTML = `@media print { input[type="number"].table-input { display: none !important; } .print-only { display: inline !important; } }`;
+            document.head.appendChild(style);
+        }
+    }
+
+    function renderDefaulters() {
+        const tbody = document.getElementById('defaultersBody');
+        tbody.innerHTML = '';
+
+        let defaultersList = data.map(record => {
+            let monthsOwing = [];
+            let totalOwed = 0;
+
+            months.forEach(m => {
+                let paid = record.payments[activeYear][m];
+                let expected = record.monthlyLevy;
+                if (paid < expected) {
+                    let owed = expected - paid;
+                    monthsOwing.push(`<span style="display:inline-block; background:#f3f4f6; padding: 2px 8px; border-radius: 4px; margin: 2px; font-size: 0.8rem;">${m.charAt(0).toUpperCase() + m.slice(1)}: ₦${formatMoney(owed)}</span>`);
+                    totalOwed += owed;
+                }
+            });
+            return { ...record, monthsOwing, totalOwed };
+        }).filter(d => d.totalOwed > 0);
+
+        defaultersList.sort((a, b) => b.totalOwed - a.totalOwed);
+
+        if(defaultersList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No outstanding payments for ${activeYear}. Great job!</td></tr>`;
+            return;
+        }
+
+        defaultersList.forEach((defaulter, index) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td class="text-center" style="color: #6b7280; font-weight: 500;">${index + 1}</td>
+                    <td style="font-weight: 600; color: #111827;">${defaulter.name}</td>
+                    <td>${defaulter.compound} <span class="text-muted">(${defaulter.house})</span></td>
+                    <td style="line-height: 1.8;">${defaulter.monthsOwing.join(' ')}</td>
+                    <td class="text-end" style="font-weight: 700; color: #dc2626; font-size: 1.05rem;">₦${formatMoney(defaulter.totalOwed)}</td>
+                </tr>
+            `;
+        });
+    }
+
+    function generateReceipt(id) {
+        const record = data.find(d => d.id === id);
+        if(!record) return;
+
+        const yearlyExpected = record.monthlyLevy * 12;
+        let totalPaid = 0;
+        let owingText = [];
+        
+        months.forEach(m => {
+            let paid = record.payments[activeYear][m];
+            totalPaid += paid;
+            if(paid < record.monthlyLevy) {
+                owingText.push(m.charAt(0).toUpperCase() + m.slice(1));
+            }
+        });
+        const balance = yearlyExpected - totalPaid;
+
+        document.getElementById('rDate').innerText = new Date().toLocaleDateString('en-NG');
+        document.getElementById('rYear').innerText = activeYear;
+        document.getElementById('rName').innerText = record.name;
+        document.getElementById('rAddress').innerText = `${record.compound}, House No: ${record.house}`;
+        document.getElementById('rMonthly').innerText = formatMoney(record.monthlyLevy);
+        document.getElementById('rExpected').innerText = formatMoney(yearlyExpected);
+        document.getElementById('rPaid').innerText = formatMoney(totalPaid);
+        document.getElementById('rBalance').innerText = formatMoney(balance);
+        
+        if (balance > 0) {
+            document.getElementById('rOwingMonths').innerHTML = `Months Owing: ${owingText.join(', ')}`;
+        } else {
+            document.getElementById('rOwingMonths').innerHTML = `<span style="color: #059669;">Account Fully Paid for ${activeYear}</span>`;
+        }
+
+        const element = document.getElementById('receiptContent');
+
+        // Added windowWidth: 1200 so mobile users still output a desktop-style PDF
+        const opt = {
+            margin:       0.5,
+            filename:     `Receipt_${record.name.replace(/\s+/g, '_')}_${activeYear}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, windowWidth: 1200 },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        document.body.style.cursor = 'wait';
+        
+        html2pdf().set(opt).from(element).save().then(() => {
+            document.body.style.cursor = 'default';
+        });
+    }
+
+    function exportPDF() {
+        const element = document.getElementById('app-content');
+        const inputs = document.querySelectorAll('.table-input');
+        const printSpans = document.querySelectorAll('.print-only');
+        const sig = document.getElementById('full-report-signature');
+        
+        inputs.forEach(i => i.style.display = 'none');
+        printSpans.forEach(s => s.style.display = 'inline');
+        sig.style.display = 'flex'; 
+
+        updateLabels();
+
+        // Added windowWidth: 1200 so mobile users still output a desktop-style PDF
+        const opt = {
+            margin:       [0.4, 0.3, 0.4, 0.3], 
+            filename:     `Jenny_School_Road_Security_${activeYear}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, windowWidth: 1200 },
+            pagebreak:    { mode: ['css', 'legacy'] }, 
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+        
+        document.body.style.cursor = 'wait';
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            inputs.forEach(i => i.style.display = 'inline-block');
+            printSpans.forEach(s => s.style.display = 'none');
+            sig.style.display = 'none'; 
+            document.body.style.cursor = 'default';
+        });
+    }
+
+    // Initialize System on load
+    window.onload = initializeSystem;
+</script>
+
+</body>
+</html>
