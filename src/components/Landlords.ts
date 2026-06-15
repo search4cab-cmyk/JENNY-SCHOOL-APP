@@ -21,6 +21,9 @@ export class LandlordsComponent {
           <td><span class="badge ${l.status === 'ACTIVE' ? 'badge-success' : 'badge-danger'}">${l.status}</span></td>
           ${canEdit ? `
           <td class="text-right">
+            <button class="btn-icon text-primary" onclick="window.appEditLandlord('${l.id}', '${l.landlord_name.replace(/'/g, "\\'")}', '${l.phone_number || ''}', '${l.compound_name.replace(/'/g, "\\'")}', ${l.monthly_levy})">
+              <i data-lucide="edit-2"></i>
+            </button>
             <button class="btn-icon text-danger" onclick="window.appDeleteLandlord('${l.id}')">
               <i data-lucide="trash-2"></i>
             </button>
@@ -97,11 +100,47 @@ export class LandlordsComponent {
             </form>
           </div>
         </div>
+        <!-- Edit Modal -->
+        <div class="modal-overlay" id="editModal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title">Edit Resident</h3>
+              <button class="modal-close" id="closeEditModal"><i data-lucide="x"></i></button>
+            </div>
+            <form id="editLandlordForm">
+              <input type="hidden" id="editId">
+              <div class="modal-body">
+                <div class="form-group">
+                  <label class="form-label">Full Name</label>
+                  <input type="text" id="eName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone Number</label>
+                  <input type="text" id="ePhone" class="form-control">
+                </div>
+                <div class="d-flex gap-4">
+                  <div class="form-group w-100">
+                    <label class="form-label">Compound Name</label>
+                    <input type="text" id="eCompound" class="form-control" required>
+                  </div>
+                  <div class="form-group w-100">
+                    <label class="form-label">Monthly Levy (₦)</label>
+                    <input type="number" id="eLevy" class="form-control" required>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="cancelEditModal">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="updateLandlordBtn">Update Resident</button>
+              </div>
+            </form>
+          </div>
+        </div>
       `;
 
       // Icons
-      const { createIcons, Search, Plus, Trash2, X } = await import('lucide');
-      createIcons({ icons: { Search, Plus, Trash2, X } });
+      const { createIcons, Search, Plus, Trash2, Edit2, X } = await import('lucide');
+      createIcons({ icons: { Search, Plus, Trash2, Edit2, X } });
 
       // Search Logic
       document.getElementById('searchLandlords')?.addEventListener('input', (e) => {
@@ -142,13 +181,53 @@ export class LandlordsComponent {
               compound_name: (document.getElementById('lCompound') as HTMLInputElement).value,
               monthly_levy: parseFloat((document.getElementById('lLevy') as HTMLInputElement).value),
               status: 'ACTIVE'
-            } as any); // 'as any' bypasses missing house_number strictly until DB aligns
+            } as any);
 
-            window.location.reload(); // Quick refresh to show new data
+            window.location.reload(); 
           } catch (error) {
             alert('Failed to save landlord');
             console.error(error);
             btn.textContent = 'Save Resident';
+            btn.disabled = false;
+          }
+        });
+
+        // Edit Modal Logic
+        const editModal = document.getElementById('editModal');
+        const closeEditBtns = [document.getElementById('closeEditModal'), document.getElementById('cancelEditModal')];
+        const closeEditModalFn = () => editModal?.classList.remove('active');
+        closeEditBtns.forEach(b => b?.addEventListener('click', closeEditModalFn));
+
+        (window as any).appEditLandlord = (id: string, name: string, phone: string, compound: string, levy: number) => {
+          (document.getElementById('editId') as HTMLInputElement).value = id;
+          (document.getElementById('eName') as HTMLInputElement).value = name;
+          (document.getElementById('ePhone') as HTMLInputElement).value = phone;
+          (document.getElementById('eCompound') as HTMLInputElement).value = compound;
+          (document.getElementById('eLevy') as HTMLInputElement).value = levy.toString();
+          editModal?.classList.add('active');
+        };
+
+        // Edit Form Submit
+        document.getElementById('editLandlordForm')?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const btn = document.getElementById('updateLandlordBtn') as HTMLButtonElement;
+          btn.textContent = 'Updating...';
+          btn.disabled = true;
+
+          const id = (document.getElementById('editId') as HTMLInputElement).value;
+          try {
+            await ApiService.updateLandlord(id, {
+              landlord_name: (document.getElementById('eName') as HTMLInputElement).value,
+              phone_number: (document.getElementById('ePhone') as HTMLInputElement).value,
+              compound_name: (document.getElementById('eCompound') as HTMLInputElement).value,
+              monthly_levy: parseFloat((document.getElementById('eLevy') as HTMLInputElement).value),
+            });
+
+            window.location.reload(); 
+          } catch (error) {
+            alert('Failed to update resident');
+            console.error(error);
+            btn.textContent = 'Update Resident';
             btn.disabled = false;
           }
         });

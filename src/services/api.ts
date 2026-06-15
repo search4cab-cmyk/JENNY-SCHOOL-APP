@@ -71,6 +71,14 @@ export class ApiService {
     return data as Landlord;
   }
 
+  static async updateLandlord(id: string, updates: Partial<Omit<Landlord, 'id' | 'created_at' | 'estate_id'>>): Promise<void> {
+    const { error } = await supabase
+      .from('landlords')
+      .update(updates)
+      .eq('id', id);
+    if (error) throw error;
+  }
+
   static async updatePayment(
     landlordId: string, 
     month: string, 
